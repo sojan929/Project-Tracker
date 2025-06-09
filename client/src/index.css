@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(240, 10%, 3.9%);
+  --muted: hsl(240, 4.8%, 95.9%);
+  --muted-foreground: hsl(240, 3.8%, 46.1%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(240, 10%, 3.9%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(240, 10%, 3.9%);
+  --border: hsl(240, 5.9%, 90%);
+  --input: hsl(240, 5.9%, 90%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(0, 0%, 98%);
+  --secondary: hsl(240, 4.8%, 95.9%);
+  --secondary-foreground: hsl(240, 5.9%, 10%);
+  --accent: hsl(240, 4.8%, 95.9%);
+  --accent-foreground: hsl(240, 5.9%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 5%, 64.9%);
+  --radius: 0.5rem;
+  
+  /* Corporate colors */
+  --corporate-blue: hsl(207, 90%, 54%);
+  --corporate-dark: hsl(0, 0%, 26%);
+  --success-green: hsl(122, 39%, 49%);
+  --warning-orange: hsl(36, 100%, 48%);
+  --error-red: hsl(0, 68%, 62%);
+  --bg-light: hsl(0, 0%, 98%);
+}
+
+.dark {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(0, 0%, 98%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+/* Corporate styling overrides */
+.corporate-header {
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+}
+
+.corporate-blue {
+  background-color: var(--corporate-blue);
+}
+
+.corporate-dark {
+  color: var(--corporate-dark);
+}
+
+.success-green {
+  background-color: var(--success-green);
+}
+
+.warning-orange {
+  background-color: var(--warning-orange);
+}
+
+.error-red {
+  background-color: var(--error-red);
+}
+
+/* Progress bar styling */
+.progress-bar {
+  transition: width 0.3s ease;
+}
+
+.progress-bar.completed {
+  background-color: var(--success-green);
+}
+
+.progress-bar.in-progress {
+  background-color: var(--warning-orange);
+}
+
+.progress-bar.overdue {
+  background-color: var(--error-red);
+}
+
+.progress-bar.not-started {
+  background-color: hsl(0, 0%, 60%);
+}
+
+/* Table hover effects */
+.table-row:hover {
+  background-color: hsl(240, 4.8%, 97%);
+}
+
+/* Sticky header styling */
+.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: var(--corporate-blue);
+}

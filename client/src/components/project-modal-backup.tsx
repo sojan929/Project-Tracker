@@ -1,0 +1,785 @@
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { insertProjectSchema, type InsertProject, type Project } from "@/../../shared/schema";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { useEffect, ChangeEvent } from "react";
+
+interface ProjectModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onProjectSaved: () => void;
+  editingProject?: Project | null;
+}
+
+export function ProjectModal({ isOpen, onClose, onProjectSaved, editingProject }: ProjectModalProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const form = useForm<InsertProject>({
+    resolver: zodResolver(insertProjectSchema),
+    defaultValues: {
+      name: "",
+      priority: "",
+      constructionProgress: undefined,
+      designStage: undefined,
+      designProjectNumber: "",
+      workOrderNumber: "",
+      estimatedStartDate: "",
+      estimatedCompletionDate: "",
+      projectStartDate: "",
+      projectFinishDate: "",
+      briefScope: "",
+      designProjectLeader: "",
+      surveyBy: "",
+      surveyMethod: "",
+      surveyPercentCompleted: 0,
+      surveyStatus: undefined,
+      surveyComments: "",
+      designBy: "",
+      designPercentCompleted: 0,
+      designStatus: undefined,
+      designComments: "",
+      drawingsBy: "",
+      drawingsPercentCompleted: 0,
+      drawingsStatus: undefined,
+      drawingsComments: "",
+      waeBy: "",
+      waePercentCompleted: 0,
+      waeStatus: undefined,
+      waeComments: "",
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: InsertProject) => {
+      const response = await apiRequest("/api/projects", {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: { "Content-Type": "application/json" },
+      });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      toast({ title: "Success", description: "Project created successfully!" });
+      form.reset();
+      onProjectSaved();
+      onClose();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create project",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: InsertProject) => {
+      const response = await apiRequest(`/api/projects/${editingProject?.id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+        headers: { "Content-Type": "application/json" },
+      });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      toast({ title: "Success", description: "Project updated successfully!" });
+      form.reset();
+      onProjectSaved();
+      onClose();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update project",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: InsertProject) => {
+    if (editingProject) {
+      updateMutation.mutate(data);
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  useEffect(() => {
+    if (editingProject) {
+      form.reset({
+        priority: editingProject.priority || "",
+        constructionProgress: editingProject.constructionProgress as "on-track" | "on-hold" | "completed" | "monitoring" | undefined,
+        designStage: editingProject.designStage as "completed" | "not-started" | "in-progress" | "under-review" | undefined,
+        name: editingProject.name,
+        designProjectNumber: editingProject.designProjectNumber,
+        workOrderNumber: editingProject.workOrderNumber || "",
+        estimatedStartDate: editingProject.estimatedStartDate || "",
+        estimatedCompletionDate: editingProject.estimatedCompletionDate || "",
+        projectStartDate: editingProject.projectStartDate || "",
+        projectFinishDate: editingProject.projectFinishDate || "",
+        briefScope: editingProject.briefScope || "",
+        designProjectLeader: editingProject.designProjectLeader || "",
+        surveyBy: editingProject.surveyBy || "",
+        surveyMethod: editingProject.surveyMethod || "",
+        surveyPercentCompleted: editingProject.surveyPercentCompleted || 0,
+        surveyStatus: editingProject.surveyStatus as "completed" | "not-started" | "in-progress" | undefined,
+        surveyComments: editingProject.surveyComments || "",
+        designBy: editingProject.designBy || "",
+        designPercentCompleted: editingProject.designPercentCompleted || 0,
+        designStatus: editingProject.designStatus as "completed" | "not-started" | "in-progress" | undefined,
+        designComments: editingProject.designComments || "",
+        drawingsBy: editingProject.drawingsBy || "",
+        drawingsPercentCompleted: editingProject.drawingsPercentCompleted || 0,
+        drawingsStatus: editingProject.drawingsStatus as "completed" | "not-started" | "in-progress" | undefined,
+        drawingsComments: editingProject.drawingsComments || "",
+        waeBy: editingProject.waeBy || "",
+        waePercentCompleted: editingProject.waePercentCompleted || 0,
+        waeStatus: editingProject.waeStatus as "completed" | "not-started" | "in-progress" | undefined,
+        waeComments: editingProject.waeComments || "",
+      });
+    } else {
+      form.reset();
+    }
+  }, [editingProject, form]);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {editingProject ? "Edit Project" : "Add New Project"}
+          </DialogTitle>
+        </DialogHeader>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <Tabs defaultValue="general" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="general">General</TabsTrigger>
+                <TabsTrigger value="survey">Survey</TabsTrigger>
+                <TabsTrigger value="design">Design</TabsTrigger>
+                <TabsTrigger value="construction">Construction</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="general" className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Project Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="designProjectNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Design Project Number</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="priority"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Priority</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select priority" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="1">1 - High</SelectItem>
+                            <SelectItem value="2">2 - Medium-High</SelectItem>
+                            <SelectItem value="3">3 - Medium</SelectItem>
+                            <SelectItem value="4">4 - Low</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="constructionProgress"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Construction Progress</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select progress" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="on-track">On Track</SelectItem>
+                            <SelectItem value="on-hold">On Hold</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="monitoring">Monitoring</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="designStage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Design Stage</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select stage" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="not-started">Not Started</SelectItem>
+                            <SelectItem value="in-progress">In Progress</SelectItem>
+                            <SelectItem value="under-review">Under Review</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="workOrderNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Work Order Number</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="estimatedStartDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Estimated Start Date</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="date" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="estimatedCompletionDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Estimated Completion Date</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="date" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="projectStartDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Project Start Date</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="date" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="projectFinishDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Project Finish Date</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="date" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="briefScope"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Brief Scope</FormLabel>
+                      <FormControl>
+                        <Textarea {...field} rows={6} className="min-h-[120px] resize-vertical" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="designProjectLeader"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Design Project Leader</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </TabsContent>
+
+              <TabsContent value="survey" className="space-y-6">
+                {/* Responsibility Section */}
+                <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-400">
+                  <h3 className="font-semibold text-blue-900 mb-3">Survey Responsibility & Progress</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="surveyBy"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-blue-800">Responsible Person (Initials)</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., RG, JC, RO" className="bg-white" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="surveyPercentCompleted"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-blue-800">Progress (%)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="number" 
+                              min="0" 
+                              max="100"
+                              value={field.value ?? 0}
+                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                              className="bg-white"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Technical Details */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-gray-900">Technical Details</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="surveyMethod"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Survey Method</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., GPS MGA 2020, Drone" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="surveyStatus"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Status</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value || ""}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select status" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="not-started">Not Started</SelectItem>
+                              <SelectItem value="in-progress">In Progress</SelectItem>
+                              <SelectItem value="completed">Completed</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Comments Section */}
+                <div className="bg-gray-50 p-4 rounded-lg border">
+                  <FormField
+                    control={form.control}
+                    name="surveyComments"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-800 font-semibold">Survey Comments & Notes</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            {...field} 
+                            rows={4}
+                            placeholder="Enter any survey-specific comments, issues, or notes..."
+                            className="bg-white resize-vertical"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="design" className="space-y-6">
+                {/* Responsibility Section */}
+                <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-400">
+                  <h3 className="font-semibold text-green-900 mb-3">Design Responsibility & Progress</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="designBy"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-green-800">Responsible Person (Initials)</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., RO, JC, RG" className="bg-white" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="designPercentCompleted"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-green-800">Progress (%)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="number" 
+                              min="0" 
+                              max="100"
+                              value={field.value ?? 0}
+                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                              className="bg-white"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Status Section */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-gray-900">Design Status</h3>
+                  <FormField
+                    control={form.control}
+                    name="designStatus"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Current Status</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="not-started">Not Started</SelectItem>
+                            <SelectItem value="in-progress">In Progress</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Comments Section */}
+                <div className="bg-gray-50 p-4 rounded-lg border">
+                  <FormField
+                    control={form.control}
+                    name="designComments"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-800 font-semibold">Design Comments & Notes</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            {...field} 
+                            rows={4}
+                            placeholder="Enter design progress, issues, requirements, or technical notes..."
+                            className="bg-white resize-vertical"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="construction" className="space-y-6">
+                {/* Drawings Section */}
+                <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-400">
+                  <h3 className="font-semibold text-purple-900 mb-3">Drawings Responsibility & Progress</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="drawingsBy"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-purple-800">Responsible Person (Initials)</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., RO, JC, RG" className="bg-white" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="drawingsPercentCompleted"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-purple-800">Progress (%)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="number" 
+                              min="0" 
+                              max="100"
+                              value={field.value ?? 0}
+                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                              className="bg-white"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="drawingsStatus"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Drawings Status</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="not-started">Not Started</SelectItem>
+                            <SelectItem value="in-progress">In Progress</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Drawings Comments */}
+                <div className="bg-gray-50 p-4 rounded-lg border">
+                  <FormField
+                    control={form.control}
+                    name="drawingsComments"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-800 font-semibold">Drawings Comments & Notes</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            {...field} 
+                            value={field.value || ""}
+                            rows={4}
+                            placeholder="Enter drawings progress, revisions, approvals, or technical notes..."
+                            className="bg-white resize-vertical"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* WAE Section */}
+                <div className="bg-orange-50 p-4 rounded-lg border-l-4 border-orange-400">
+                  <h3 className="font-semibold text-orange-900 mb-3">Works As Executed (WAE) Responsibility & Progress</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="waeBy"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-orange-800">Responsible Person (Initials)</FormLabel>
+                          <FormControl>
+                            <Input {...field} value={field.value || ""} placeholder="e.g., JC, RO, RG" className="bg-white" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="waePercentCompleted"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-orange-800">Progress (%)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="number" 
+                              min="0" 
+                              max="100"
+                              value={field.value ?? 0}
+                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                              className="bg-white"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="waeStatus"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>WAE Status</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="not-started">Not Started</SelectItem>
+                            <SelectItem value="in-progress">In Progress</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* WAE Comments */}
+                <div className="bg-gray-50 p-4 rounded-lg border">
+                  <FormField
+                    control={form.control}
+                    name="waeComments"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-800 font-semibold">WAE Comments & Notes</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            {...field} 
+                            value={field.value || ""}
+                            rows={4}
+                            placeholder="Enter WAE progress, field modifications, final documentation notes..."
+                            className="bg-white resize-vertical"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <div className="flex justify-end space-x-2 pt-6 border-t">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={createMutation.isPending || updateMutation.isPending}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {createMutation.isPending || updateMutation.isPending ? (
+                  "Saving..."
+                ) : editingProject ? (
+                  "Update Project"
+                ) : (
+                  "Create Project"
+                )}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
